@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>일본어 학습 앱 (레벨 시스템 & 문제 확장)</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background: #f5f5f5; color: #333; }
+    .header { background: #4CAF50; color: white; padding: 15px; display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; }
+    
+    /* ★ 레벨 표시용 스타일 (헤더 내) */
+    .level-badge { background: #fff; color: #4CAF50; padding: 2px 8px; border-radius: 12px; font-weight: 900; }
+
+    .progress-container { width: 100%; height: 8px; background: #e0e0e0; }
+    .progress-bar { height: 100%; background: #4CAF50; width: 0%; transition: width 0.4s ease; border-radius: 0 4px 4px 0; }
+    .container { padding: 20px; max-width: 600px; margin: 0 auto; }
+    .card { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+    .review-card { border: 2px solid #ff9800; background: #fffdf5; }
+    
+    .btn-review { background: #ff9800; color: white; border: none; padding: 15px; width: 100%; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-bottom: 10px; display: block; text-align: center; }
+    .btn-review:active { background: #e68a00; }
+    .btn { background: #2196F3; color: white; border: none; padding: 15px; width: 100%; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-bottom: 10px; display: block; text-align: center; transition: background 0.2s; }
+    .btn:active { background: #1976D2; }
+    .btn-audio { background: #ff9800; color: white; border: none; padding: 10px 15px; border-radius: 8px; font-size: 16px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; margin-bottom: 15px; }
+    
+    .hidden { display: none !important; }
+    .answer-box { min-height: 60px; border: 2px dashed #2196F3; border-radius: 8px; margin-bottom: 10px; padding: 15px; font-size: 28px; text-align: center; letter-spacing: 5px; background: #f9f9f9; color: #2196F3; font-weight: bold; word-break: break-all; }
+    .char-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 20px; }
+    .char-btn { background: #fff; border: 2px solid #ddd; border-radius: 8px; padding: 15px 0; width: calc(25% - 10px); font-size: 24px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .char-btn:active { background: #e0e0e0; border-color: #ccc; }
+    .btn-delete { padding: 10px 15px; font-size: 14px; border-radius: 5px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+    .lesson-item { border-left: 5px solid #2196F3; padding-left: 15px; margin-bottom: 25px; }
+    .lesson-item h3 { margin-top: 0; margin-bottom: 5px; font-size: 18px; }
+    .lesson-item p { color: #666; margin-top: 0; font-size: 14px; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+  <!-- ★ 변경: 헤더에 레벨(Lv) 배지 추가 -->
+  <div class="header">
+    <span class="level-badge">👑 Lv.<span id="level">1</span></span>
+    <span>🔥 <span id="streak">1</span>일</span>
+    <span>🪙 <span id="coin">0</span></span>
+    <span>⭐ <span id="xp">0</span> XP</span>
+  </div>
+
+  <div id="progress-container" class="progress-container hidden">
+    <div id="progress-bar" class="progress-bar"></div>
+  </div>
+
+  <div id="dashboard" class="container">
+    <h2>오늘의 레슨</h2>
+    
+    <div class="card review-card hidden" id="review-card">
+      <h3 style="color: #ff9800; margin-top: 0;">📝 오답 노트 복습</h3>
+      <p style="color: #666; font-size: 14px;">틀렸던 문제 <b><span id="mistake-count">0</span></b>개가 남아있습니다.<br>한 번에 맞추면 리스트에서 사라집니다!</p>
+      <button class="btn-review" onclick="startReview()">오답 복습하기</button>
+    </div>
+
+    <div class="card" id="lesson-list"></div>
+  </div>
+
+  <div id="lesson" class="container hidden">
+    <h2>새로운 문법・표현</h2>
+    <div class="card">
+      <h3 id="lesson-jp" style="font-size: 24px; margin: 0 0 10px 0;"></h3>
+      <button class="btn-audio" id="btn-lesson-audio">🔊 발음 듣기</button>
+      <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+      <p id="lesson-ko" style="color: #666; font-size: 18px; font-weight: bold;"></p>
+      <p id="lesson-exp" style="line-height: 1.6;"></p>
+    </div>
+    <button class="btn" onclick="nextStep()">연습문제로 넘어가기</button>
+  </div>
+
+  <div id="quiz-choice" class="container hidden">
+    <h2 id="choice-title">연습 퀴즈</h2>
+    <div class="card">
+      <p id="choice-q" style="font-size: 18px; font-weight: bold;"></p>
+      <div id="choice-btn-area"></div>
+    </div>
+  </div>
+
+  <div id="quiz-typing" class="container hidden">
+    <h2 id="construct-title">연습 퀴즈</h2>
+    <div class="card">
+      <p style="font-size: 18px; font-weight: bold;">알맞은 글자를 순서대로 선택해 문장을 완성하세요.</p>
+      <p id="construct-hint" style="color: #666; margin-bottom: 20px;"></p>
+      <div id="answer-display" class="answer-box"></div>
+      <div style="text-align: right; margin-bottom: 15px;">
+        <button class="btn-delete" onclick="deleteChar()">⌫ 한 글자 지우기</button>
+      </div>
+      <div id="char-grid" class="char-grid"></div>
+      <button class="btn" id="btn-construct-check">정답 확인</button>
+    </div>
+  </div>
+
+  <script>
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+    function playSound(type) {
+      if (!audioCtx) audioCtx = new AudioContext();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      osc.connect(gainNode); gainNode.connect(audioCtx.destination);
+      const now = audioCtx.currentTime;
+      if (type === 'correct') {
+        osc.type = 'sine'; osc.frequency.setValueAtTime(659.25, now); osc.frequency.setValueAtTime(1046.50, now + 0.1);
+        gainNode.gain.setValueAtTime(0, now); gainNode.gain.linearRampToValueAtTime(0.5, now + 0.05); gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
+        osc.start(now); osc.stop(now + 0.3);
+      } else if (type === 'wrong') {
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+        gainNode.gain.setValueAtTime(0, now); gainNode.gain.linearRampToValueAtTime(0.3, now + 0.05); gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
+        osc.start(now); osc.stop(now + 0.3);
+      }
+    }
+
+    // ---------------------------------------------------
+    // 문제 볼륨 대폭 확장 (제1과, 제2과 16문제씩)
+    // ---------------------------------------------------
+    const lessonsData = [
+      {
+        title: "제1과: 자기소개 (N1は N2です)",
+        desc: "풀(16문제) 중 5문제가 랜덤으로 출제됩니다.",
+        intro: { type: 'input', jp: "わたしは がくせいです", ko: "저는 학생입니다.", exp: "「〜は 〜です」는 가장 기본적인 서술어 형태입니다." },
+        pool: [
+          { type: 'choice', q: "'저는 학생입니다'의 올바른 일본어는?", options: ["わたしは がくせいです", "わたしは せんせいです"], ans: "わたしは がくせいです" },
+          { type: 'construct', hint: "저는 학생입니다 (와타시와 가쿠세이데스)", ans: "わたしはがくせいです" },
+          { type: 'choice', q: "'당신은 학생입니까?'", options: ["あなたは がくせいです", "あなたは がくせいですか"], ans: "あなたは がくせいですか" },
+          { type: 'construct', hint: "당신은 학생입니까? (아나타와 가쿠세이데스카)", ans: "あなたはがくせいですか" },
+          { type: 'choice', q: "'저는 선생님이 아닙니다'", options: ["わたしは せんせいじゃありません", "わたしは せんせいです"], ans: "わたしは せんせいじゃありません" },
+          { type: 'construct', hint: "저는 선생님이 아닙니다 (와타시와 센세-쟈아리마센)", ans: "わたしはせんせいじゃありません" },
+          { type: 'choice', q: "'저도 의사입니다'", options: ["わたしも いしゃです", "わたしは いしゃです"], ans: "わたしも いしゃです" },
+          { type: 'construct', hint: "저도 의사입니다 (와타시모 이샤데스)", ans: "わたしもいしゃです" },
+          { type: 'choice', q: "'야마다 씨는 회사원입니다'", options: ["やまださんは ぎんこういんです", "やまださんは かいしゃいんです"], ans: "やまださんは かいしゃいんです" },
+          { type: 'construct', hint: "야마다 씨는 회사원입니다 (야마다상와 카이샤인데스)", ans: "やまださんはかいしゃいんです" },
+          { type: 'choice', q: "'밀러 씨는 미국인입니다'", options: ["ミラーさんは アメリカじんです", "ミラーさんは にほんじんです"], ans: "ミラーさんは アメリカじんです" },
+          { type: 'construct', hint: "밀러 씨는 미국인입니다 (미라-상와 아메리카진데스)", ans: "ミラーさんはアメリカじんです" },
+          { type: 'choice', q: "'이 씨는 연구자입니까?'", options: ["イーさんは いしゃですか", "イーさんは けんきゅうしゃですか"], ans: "イーさんは けんきゅうしゃですか" },
+          { type: 'construct', hint: "이 씨는 연구자입니까? (이-상와 켄큐-샤데스카)", ans: "イーさんはけんきゅうしゃですか" },
+          { type: 'choice', q: "'사토 씨도 은행원입니다'", options: ["さとうさんも ぎんこういんです", "さとうさんは ぎんこういんです"], ans: "さとうさんも ぎんこういんです" },
+          { type: 'construct', hint: "사토 씨도 은행원입니다 (사토-상모 긴코-인데스)", ans: "さとうさんもぎんこういんです" }
+        ]
+      },
+      {
+        title: "제2과: 지시대명사 (これ・それ・あれ)",
+        desc: "사물을 가리키는 지시대명사를 배웁니다.",
+        intro: { type: 'input', jp: "これは ほんです", ko: "이것은 책입니다.", exp: "「これ(이것), それ(그것), あれ(저것)」로 사물을 가리킵니다." },
+        pool: [
+          { type: 'choice', q: "'이것은 책입니다'의 올바른 일본어는?", options: ["それは ほんです", "これは ほんです"], ans: "これは ほんです" },
+          { type: 'construct', hint: "이것은 책입니다 (코레와 혼데스)", ans: "これはほんです" },
+          { type: 'choice', q: "'그것은 사전입니까?'", options: ["それは じしょですか", "あれは じしょですか"], ans: "それは じしょですか" },
+          { type: 'construct', hint: "그것은 사전입니까? (소레와 지쇼데스카)", ans: "それはじしょですか" },
+          { type: 'choice', q: "'저것은 무엇입니까?'", options: ["あれは なんですか", "これは なんですか"], ans: "あれは なんですか" },
+          { type: 'construct', hint: "저것은 무엇입니까? (아레와 난데스카)", ans: "あれはなんですか" },
+          { type: 'choice', q: "'이 시계는 제 것입니다'", options: ["この とけいは わたしの です", "これ とけいは わたしの です"], ans: "この とけいは わたしの です" },
+          { type: 'construct', hint: "이 시계는 제 것입니다 (코노 토케이와 와타시노 데스)", ans: "このとけいはわたしのです" },
+          { type: 'choice', q: "'그 가방은 사토 씨의 것입니다'", options: ["その かばんは さとうさんのです", "あの かばんは さとうさんのです"], ans: "その かばんは さとうさんのです" },
+          { type: 'construct', hint: "그 가방은 사토 씨의 것입니다 (소노 카방와 사토-상노데스)", ans: "そのかばんはさとうさんのです" },
+          { type: 'choice', q: "'저 사람은 누구입니까?'", options: ["あの ひとは だれですか", "この ひとは なんですか"], ans: "あの ひとは だれですか" },
+          { type: 'construct', hint: "저 사람은 누구입니까? (아노 히토와 다레데스카)", ans: "あのひとはだれですか" },
+          { type: 'choice', q: "'이것은 자동차 잡지입니다'", options: ["これは じどうしゃの ざっしです", "これは コンピューターの ざっしです"], ans: "これは じどうしゃの ざっしです" },
+          { type: 'construct', hint: "이것은 자동차 잡지입니다 (코레와 지도-샤노 잣시데스)", ans: "これはじどうしゃのざっしです" },
+          { type: 'choice', q: "'그것은 제 명함입니다'", options: ["それは わたしの めいし입니다", "それは わたしの めいしです"], ans: "それは わたしの めいしです" },
+          { type: 'construct', hint: "그것은 제 명함입니다 (소레와 와타시노 메이시데스)", ans: "それはわたしのめいしです" }
+        ]
+      },
+      // 제3과 ~ 제10과 (구조는 동일하게 유지)
+      {
+        title: "제3과: 장소 묻기 (ここ・そこ・あそこ)",
+        desc: "장소를 나타내는 대명사와 위치를 묻는 표현을 배웁니다.",
+        intro: { type: 'input', jp: "ここは しょくどうです", ko: "여기는 식당입니다.", exp: "장소를 가리킬 때는 「ここ(여기), そこ(거기), あそこ(저기)」를 사용합니다." },
+        pool: [
+          { type: 'choice', q: "'여기는 식당입니다'", options: ["ここは しょくどうです", "そこは しょくどう입니다"], ans: "ここは しょくどうです" },
+          { type: 'construct', hint: "여기는 식당입니다 (코코와 쇼쿠도-데스)", ans: "ここはしょくどうです" },
+          { type: 'choice', q: "'화장실은 어디입니까?'", options: ["トイレは ここですか", "トイレは どこですか"], ans: "トイレは どこですか" },
+          { type: 'construct', hint: "화장실은 어디입니까? (토이레와 도코데스카)", ans: "トイレはどこですか" },
+          { type: 'choice', q: "'저기는 로비입니다'", options: ["あそこは ロビーです", "ここは ロビーです"], ans: "あそこは ロビーです" },
+          { type: 'construct', hint: "저기는 로비입니다 (아소코와 로비-데스)", ans: "あそこはロビーです" },
+          { type: 'choice', q: "'회의실은 저쪽입니다'", options: ["かいぎしつは どこですか", "かいぎしつは あちらです"], ans: "かいぎしつは あちらです" },
+          { type: 'construct', hint: "회의실은 저쪽입니다 (카이기시츠와 아치라데스)", ans: "かいぎしつはあちらです" }
+        ]
+      },
+      {
+        title: "제4과: 시간과 요일 (〜時 〜分)",
+        desc: "시간을 묻고 답하는 표현과 요일을 배웁니다.",
+        intro: { type: 'input', jp: "いま くじ입니다", ko: "지금 9시입니다.", exp: "시간은 「〜時(じ)」, 분은 「〜分(ふん/ぷん)」으로 말합니다." },
+        pool: [
+          { type: 'choice', q: "'지금 몇 시입니까?'", options: ["いま なんじですか", "いま なんですか"], ans: "いま なんじですか" },
+          { type: 'construct', hint: "지금 몇 시입니까? (이마 난지데스카)", ans: "いまなんじですか" },
+          { type: 'choice', q: "'아침 6시에 일어납니다'", options: ["あさ ろくじに おきます", "あさ ろくじへ おきます"], ans: "あさ ろくじに おきます" },
+          { type: 'construct', hint: "아침 6시에 일어납니다 (아사 로쿠지니 오키마스)", ans: "あさろくじにおきます" },
+          { type: 'choice', q: "'오늘은 월요일입니다'", options: ["きょうは げつようびです", "きょうは かようび입니다"], ans: "きょうは げつようびです" },
+          { type: 'construct', hint: "오늘은 월요일입니다 (쿄-와 게츠요-비데스)", ans: "きょうはげつようびです" },
+          { type: 'choice', q: "'9시부터 5시까지 일합니다'", options: ["くじから ごじまで はたらきます", "くじに ごじに はたらきます"], ans: "くじから ごじまで はたらきます" },
+          { type: 'construct', hint: "9시부터 5시까지 일합니다 (쿠지카라 고지마데 하타라키마스)", ans: "くじからごじまではたらきます" }
+        ]
+      }
+    ];
+
+    const hiraganaPool = "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんがぎぐげござじずぜぞだぢづでどばびぶべぼ".split('');
+
+    let xp = parseInt(localStorage.getItem('nihongo_xp')) || 0;
+    let coin = parseInt(localStorage.getItem('nihongo_coin')) || 0;
+    let streak = parseInt(localStorage.getItem('nihongo_streak')) || 1;
+    let voices = [];
+    let mistakes = JSON.parse(localStorage.getItem('nihongo_mistakes')) || [];
+    
+    let activeSteps = []; 
+    let currentStepIndex = 0;
+    let currentInputText = "";
+    let wrongThisTurn = false; 
+
+    window.onload = function() {
+      updateHeader();
+      populateVoiceList();
+      renderDashboard();
+    };
+
+    // ★ 변경: XP를 기반으로 레벨 계산 로직 추가
+    function updateHeader() {
+      // 100 XP마다 1레벨업 (0~99: Lv.1, 100~199: Lv.2 ...)
+      let level = Math.floor(xp / 100) + 1;
+      
+      document.getElementById('level').innerText = level;
+      document.getElementById('xp').innerText = xp;
+      document.getElementById('coin').innerText = coin;
+      document.getElementById('streak').innerText = streak;
+    }
+
+    function saveMistakes() {
+      localStorage.setItem('nihongo_mistakes', JSON.stringify(mistakes));
+      const reviewCard = document.getElementById('review-card');
+      if (mistakes.length > 0) {
+        reviewCard.classList.remove('hidden');
+        document.getElementById('mistake-count').innerText = mistakes.length;
+      } else {
+        reviewCard.classList.add('hidden');
+      }
+    }
+
+    function hideAllScreens() {
+      document.getElementById('dashboard').classList.add('hidden');
+      document.getElementById('lesson').classList.add('hidden');
+      document.getElementById('quiz-choice').classList.add('hidden');
+      document.getElementById('quiz-typing').classList.add('hidden');
+    }
+
+    function renderDashboard() {
+      document.getElementById('progress-container').classList.add('hidden');
+      saveMistakes(); 
+      const listDiv = document.getElementById('lesson-list');
+      listDiv.innerHTML = ''; 
+      lessonsData.forEach((lesson, index) => {
+        const item = document.createElement('div');
+        item.className = 'lesson-item';
+        item.innerHTML = `<h3>${lesson.title}</h3><p>${lesson.desc}</p><button class="btn" onclick="startLesson(${index})">레슨 시작</button>`;
+        listDiv.appendChild(item);
+      });
+    }
+
+    function startLesson(index) {
+      const lessonData = lessonsData[index];
+      let shuffledPool = [...lessonData.pool];
+      for (let i = shuffledPool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffledPool[i], shuffledPool[j]] = [shuffledPool[j], shuffledPool[i]];
+      }
+      const selectedQuestions = shuffledPool.slice(0, 5);
+      activeSteps = [lessonData.intro, ...selectedQuestions];
+      
+      currentStepIndex = 0;
+      document.getElementById('progress-container').classList.remove('hidden');
+      renderStep();
+    }
+
+    function startReview() {
+      let shuffledMistakes = [...mistakes];
+      for (let i = shuffledMistakes.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffledMistakes[i], shuffledMistakes[j]] = [shuffledMistakes[j], shuffledMistakes[i]];
+      }
+      activeSteps = shuffledMistakes.slice(0, 5);
+      currentStepIndex = 0;
+      document.getElementById('progress-container').classList.remove('hidden');
+      renderStep();
+    }
+
+    function renderStep() {
+      wrongThisTurn = false; 
+      if (activeSteps.length > 0) {
+        const progressPercent = ((currentStepIndex + 1) / activeSteps.length) * 100;
+        document.getElementById('progress-bar').style.width = progressPercent + '%';
+      }
+
+      if (currentStepIndex >= activeSteps.length) {
+        xp += 20; coin += 10;
+        localStorage.setItem('nihongo_xp', xp); localStorage.setItem('nihongo_coin', coin);
+        updateHeader();
+        setTimeout(() => {
+          alert('학습 완료! 🎉\n⭐ +20 XP\n🪙 +10 코인');
+          hideAllScreens();
+          document.getElementById('dashboard').classList.remove('hidden');
+          renderDashboard(); 
+        }, 400); 
+        return;
+      }
+
+      const step = activeSteps[currentStepIndex];
+      hideAllScreens();
+
+      if (step.type === 'input') {
+        document.getElementById('lesson-jp').innerText = step.jp;
+        document.getElementById('lesson-ko').innerText = step.ko;
+        document.getElementById('lesson-exp').innerText = step.exp;
+        document.getElementById('btn-lesson-audio').onclick = () => playAudio(step.jp);
+        document.getElementById('lesson').classList.remove('hidden');
+      } 
+      else if (step.type === 'choice') {
+        document.getElementById('choice-title').innerText = `연습 퀴즈 ${currentStepIndex + 1}/${activeSteps.length}`;
+        document.getElementById('choice-q').innerText = step.q;
+        const btnArea = document.getElementById('choice-btn-area');
+        btnArea.innerHTML = '';
+        step.options.forEach(opt => {
+          const btn = document.createElement('button');
+          btn.className = 'btn'; btn.innerText = opt;
+          btn.onclick = () => checkChoice(opt, step); 
+          btnArea.appendChild(btn);
+        });
+        document.getElementById('quiz-choice').classList.remove('hidden');
+      } 
+      else if (step.type === 'construct') {
+        currentInputText = '';
+        document.getElementById('answer-display').innerText = '';
+        document.getElementById('construct-title').innerText = `연습 퀴즈 ${currentStepIndex + 1}/${activeSteps.length}`;
+        document.getElementById('construct-hint').innerText = `힌트: ${step.hint}`;
+        
+        let buttonChars = [...new Set(step.ans.split(''))];
+        
+        if (step.ans.includes('は') && !buttonChars.includes('わ')) buttonChars.push('わ');
+        if (step.ans.includes('を') && !buttonChars.includes('お')) buttonChars.push('お');
+        if (step.ans.includes('へ') && !buttonChars.includes('え')) buttonChars.push('え');
+
+        const targetCount = Math.max(12, Math.ceil(buttonChars.length / 4) * 4);
+        while(buttonChars.length < targetCount) {
+          const randomChar = hiraganaPool[Math.floor(Math.random() * hiraganaPool.length)];
+          if (!buttonChars.includes(randomChar)) buttonChars.push(randomChar);
+        }
+
+        for (let i = buttonChars.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [buttonChars[i], buttonChars[j]] = [buttonChars[j], buttonChars[i]];
+        }
+
+        const charGrid = document.getElementById('char-grid');
+        charGrid.innerHTML = '';
+        buttonChars.forEach(char => {
+          const btn = document.createElement('button');
+          btn.className = 'char-btn'; btn.innerText = char;
+          btn.onclick = () => {
+            currentInputText += char;
+            document.getElementById('answer-display').innerText = currentInputText;
+          };
+          charGrid.appendChild(btn);
+        });
+
+        document.getElementById('btn-construct-check').onclick = () => checkConstruct(step);
+        document.getElementById('quiz-typing').classList.remove('hidden');
+      }
+    }
+
+    function nextStep() { currentStepIndex++; renderStep(); }
+    
+    function processAnswer(isCorrect, step) {
+      if (isCorrect) {
+        playSound('correct');
+        if (!wrongThisTurn) {
+          mistakes = mistakes.filter(m => m.ans !== step.ans);
+          saveMistakes();
+        }
+        setTimeout(() => { alert('정답입니다! ⭕'); nextStep(); }, 300);
+      } else {
+        playSound('wrong');
+        wrongThisTurn = true; 
+        if (!mistakes.some(m => m.ans === step.ans)) {
+          mistakes.push(step);
+          saveMistakes();
+        }
+        setTimeout(() => { alert('틀렸습니다. 다시 생각해 보세요! ❌'); }, 300);
+      }
+    }
+
+    function checkChoice(selected, step) { processAnswer(selected === step.ans, step); }
+    function checkConstruct(step) { processAnswer(currentInputText === step.ans, step); }
+
+    function deleteChar() {
+      if (currentInputText.length > 0) {
+        currentInputText = currentInputText.slice(0, -1);
+        document.getElementById('answer-display').innerText = currentInputText;
+      }
+    }
+
+    function populateVoiceList() { if (typeof speechSynthesis === 'undefined') return; voices = speechSynthesis.getVoices(); }
+    if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) { speechSynthesis.onvoiceschanged = populateVoiceList; }
+    
+    function playAudio(text) {
+      if ('speechSynthesis' in window) {
+        const cleanText = text.replace(/\s+/g, '') + '。';
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        populateVoiceList(); 
+        let japaneseVoices = voices.filter(voice => voice.lang.includes('ja-JP') || voice.lang === 'ja_JP');
+        let nativeVoice = japaneseVoices.find(voice => voice.name === 'Google 日本語') || japaneseVoices.find(voice => voice.name.includes('Nanami')) || japaneseVoices.find(voice => voice.name.includes('Keita')) || japaneseVoices.find(voice => voice.name.includes('Ayumi')) || japaneseVoices.find(voice => voice.name.includes('Haruka')) || japaneseVoices.find(voice => voice.name.includes('Ichiro')) || japaneseVoices[0];
+        if (nativeVoice) utterance.voice = nativeVoice; else utterance.lang = 'ja-JP';
+        utterance.rate = 1.0; 
+        window.speechSynthesis.speak(utterance);
+      } else { alert('이 브라우저는 음성 재생을 지원하지 않습니다.'); }
+    }
+  </script>
+</body>
+</html>
