@@ -3,26 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>일본어 학습 앱 (레벨 시스템 & 문제 확장)</title>
+  <title>일본어 학습 앱 (제1~10과 완전판)</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background: #f5f5f5; color: #333; }
     .header { background: #4CAF50; color: white; padding: 15px; display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; }
-    
-    /* ★ 레벨 표시용 스타일 (헤더 내) */
     .level-badge { background: #fff; color: #4CAF50; padding: 2px 8px; border-radius: 12px; font-weight: 900; }
-
     .progress-container { width: 100%; height: 8px; background: #e0e0e0; }
     .progress-bar { height: 100%; background: #4CAF50; width: 0%; transition: width 0.4s ease; border-radius: 0 4px 4px 0; }
     .container { padding: 20px; max-width: 600px; margin: 0 auto; }
     .card { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
     .review-card { border: 2px solid #ff9800; background: #fffdf5; }
-    
     .btn-review { background: #ff9800; color: white; border: none; padding: 15px; width: 100%; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-bottom: 10px; display: block; text-align: center; }
     .btn-review:active { background: #e68a00; }
     .btn { background: #2196F3; color: white; border: none; padding: 15px; width: 100%; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-bottom: 10px; display: block; text-align: center; transition: background 0.2s; }
     .btn:active { background: #1976D2; }
     .btn-audio { background: #ff9800; color: white; border: none; padding: 10px 15px; border-radius: 8px; font-size: 16px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; margin-bottom: 15px; }
-    
     .hidden { display: none !important; }
     .answer-box { min-height: 60px; border: 2px dashed #2196F3; border-radius: 8px; margin-bottom: 10px; padding: 15px; font-size: 28px; text-align: center; letter-spacing: 5px; background: #f9f9f9; color: #2196F3; font-weight: bold; word-break: break-all; }
     .char-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 20px; }
@@ -36,7 +31,6 @@
 </head>
 <body>
 
-  <!-- ★ 변경: 헤더에 레벨(Lv) 배지 추가 -->
   <div class="header">
     <span class="level-badge">👑 Lv.<span id="level">1</span></span>
     <span>🔥 <span id="streak">1</span>일</span>
@@ -50,20 +44,18 @@
 
   <div id="dashboard" class="container">
     <h2>오늘의 레슨</h2>
-    
     <div class="card review-card hidden" id="review-card">
       <h3 style="color: #ff9800; margin-top: 0;">📝 오답 노트 복습</h3>
       <p style="color: #666; font-size: 14px;">틀렸던 문제 <b><span id="mistake-count">0</span></b>개가 남아있습니다.<br>한 번에 맞추면 리스트에서 사라집니다!</p>
       <button class="btn-review" onclick="startReview()">오답 복습하기</button>
     </div>
-
     <div class="card" id="lesson-list"></div>
   </div>
 
   <div id="lesson" class="container hidden">
     <h2>새로운 문법・표현</h2>
     <div class="card">
-      <h3 id="lesson-jp" style="font-size: 24px; margin: 0 0 10px 0;"></h3>
+      <h3 id="lesson-jp" class="notranslate" translate="no" style="font-size: 24px; margin: 0 0 10px 0;"></h3>
       <button class="btn-audio" id="btn-lesson-audio">🔊 발음 듣기</button>
       <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
       <p id="lesson-ko" style="color: #666; font-size: 18px; font-weight: bold;"></p>
@@ -76,7 +68,7 @@
     <h2 id="choice-title">연습 퀴즈</h2>
     <div class="card">
       <p id="choice-q" style="font-size: 18px; font-weight: bold;"></p>
-      <div id="choice-btn-area"></div>
+      <div id="choice-btn-area" class="notranslate" translate="no"></div>
     </div>
   </div>
 
@@ -85,11 +77,11 @@
     <div class="card">
       <p style="font-size: 18px; font-weight: bold;">알맞은 글자를 순서대로 선택해 문장을 완성하세요.</p>
       <p id="construct-hint" style="color: #666; margin-bottom: 20px;"></p>
-      <div id="answer-display" class="answer-box"></div>
+      <div id="answer-display" class="answer-box notranslate" translate="no"></div>
       <div style="text-align: right; margin-bottom: 15px;">
         <button class="btn-delete" onclick="deleteChar()">⌫ 한 글자 지우기</button>
       </div>
-      <div id="char-grid" class="char-grid"></div>
+      <div id="char-grid" class="char-grid notranslate" translate="no"></div>
       <button class="btn" id="btn-construct-check">정답 확인</button>
     </div>
   </div>
@@ -115,9 +107,7 @@
       }
     }
 
-    // ---------------------------------------------------
-    // 문제 볼륨 대폭 확장 (제1과, 제2과 16문제씩)
-    // ---------------------------------------------------
+    // --- 제1과 ~ 제10과 데이터 통합 ---
     const lessonsData = [
       {
         title: "제1과: 자기소개 (N1は N2です)",
@@ -144,7 +134,7 @@
       },
       {
         title: "제2과: 지시대명사 (これ・それ・あれ)",
-        desc: "사물을 가리키는 지시대명사를 배웁니다.",
+        desc: "풀(16문제) 중 5문제가 랜덤으로 출제됩니다.",
         intro: { type: 'input', jp: "これは ほんです", ko: "이것은 책입니다.", exp: "「これ(이것), それ(그것), あれ(저것)」로 사물을 가리킵니다." },
         pool: [
           { type: 'choice', q: "'이것은 책입니다'의 올바른 일본어는?", options: ["それは ほんです", "これは ほんです"], ans: "これは ほんです" },
@@ -161,14 +151,13 @@
           { type: 'construct', hint: "저 사람은 누구입니까? (아노 히토와 다레데스카)", ans: "あのひとはだれですか" },
           { type: 'choice', q: "'이것은 자동차 잡지입니다'", options: ["これは じどうしゃの ざっしです", "これは コンピューターの ざっしです"], ans: "これは じどうしゃの ざっしです" },
           { type: 'construct', hint: "이것은 자동차 잡지입니다 (코레와 지도-샤노 잣시데스)", ans: "これはじどうしゃのざっしです" },
-          { type: 'choice', q: "'그것은 제 명함입니다'", options: ["それは わたしの めいし입니다", "それは わたしの めいしです"], ans: "それは わたしの めいしです" },
+          { type: 'choice', q: "'그것은 제 명함입니다'", options: ["それは わたしの めいしです", "それは わたしの ほんですが"], ans: "それは わたしの めいしです" },
           { type: 'construct', hint: "그것은 제 명함입니다 (소레와 와타시노 메이시데스)", ans: "それはわたしのめいしです" }
         ]
       },
-      // 제3과 ~ 제10과 (구조는 동일하게 유지)
       {
         title: "제3과: 장소 묻기 (ここ・そこ・あそこ)",
-        desc: "장소를 나타내는 대명사와 위치를 묻는 표현을 배웁니다.",
+        desc: "풀(8문제) 중 5문제가 랜덤으로 출제됩니다.",
         intro: { type: 'input', jp: "ここは しょくどうです", ko: "여기는 식당입니다.", exp: "장소를 가리킬 때는 「ここ(여기), そこ(거기), あそこ(저기)」를 사용합니다." },
         pool: [
           { type: 'choice', q: "'여기는 식당입니다'", options: ["ここは しょくどうです", "そこは しょくどう입니다"], ans: "ここは しょくどうです" },
@@ -183,7 +172,7 @@
       },
       {
         title: "제4과: 시간과 요일 (〜時 〜分)",
-        desc: "시간을 묻고 답하는 표현과 요일을 배웁니다.",
+        desc: "풀(8문제) 중 5문제가 랜덤으로 출제됩니다.",
         intro: { type: 'input', jp: "いま くじ입니다", ko: "지금 9시입니다.", exp: "시간은 「〜時(じ)」, 분은 「〜分(ふん/ぷん)」으로 말합니다." },
         pool: [
           { type: 'choice', q: "'지금 몇 시입니까?'", options: ["いま なんじですか", "いま なんですか"], ans: "いま なんじですか" },
@@ -194,6 +183,96 @@
           { type: 'construct', hint: "오늘은 월요일입니다 (쿄-와 게츠요-비데스)", ans: "きょうはげつようびです" },
           { type: 'choice', q: "'9시부터 5시까지 일합니다'", options: ["くじから ごじまで はたらきます", "くじに ごじに はたらきます"], ans: "くじから ごじまで はたらきます" },
           { type: 'construct', hint: "9시부터 5시까지 일합니다 (쿠지카라 고지마데 하타라키마스)", ans: "くじからごじまではたらきます" }
+        ]
+      },
+      {
+        title: "제5과: 이동 표현 (〜へ 行きます)",
+        desc: "풀(8문제) 중 5문제가 랜덤으로 출제됩니다.",
+        intro: { type: 'input', jp: "わたしは とうきょうへ いきます", ko: "저는 도쿄에 갑니다.", exp: "이동 목적지를 나타내는 조사 「へ(에)」는 'e'로 발음합니다." },
+        pool: [
+          { type: 'choice', q: "'저는 도쿄에 갑니다'", options: ["わたしは とうきょうへ いきます", "わたしは とうきょうを いきます"], ans: "わたしは とうきょうへ いきます" },
+          { type: 'construct', hint: "저는 도쿄에 갑니다 (와타시와 토-쿄-에 이키마스)", ans: "わたしはとうきょうへいきます" },
+          { type: 'choice', q: "'어디에 갑니까?'", options: ["どこへ いきますか", "なにを いきますか"], ans: "どこへ いきますか" },
+          { type: 'construct', hint: "어디에 갑니까? (도코에 이키마스카)", ans: "どこへいきますか" },
+          { type: 'choice', q: "'아무 데도 가지 않습니다'", options: ["どこも いきません", "どこへも いきません"], ans: "どこへも いきません" },
+          { type: 'construct', hint: "아무 데도 가지 않습니다 (도코에모 이키마센)", ans: "どこへもいきません" },
+          { type: 'choice', q: "'전철로 돌아갑니다'", options: ["でんしゃで かえります", "でんしゃへ かえります"], ans: "でんしゃで かえります" },
+          { type: 'construct', hint: "전철로 돌아갑니다 (덴샤데 카에리마스)", ans: "でんしゃでかえります" }
+        ]
+      },
+      {
+        title: "제6과: 타동사 (〜を 食べます)",
+        desc: "풀(8문제) 중 5문제가 랜덤으로 출제됩니다.",
+        intro: { type: 'input', jp: "ごはんを たべます", ko: "밥을 먹습니다.", exp: "목적어를 나타내는 조사는 「を」를 사용합니다." },
+        pool: [
+          { type: 'choice', q: "'밥을 먹습니다'의 올바른 일본어는?", options: ["ごはんが たべます", "ごはんを たべます"], ans: "ごはんを たべます" },
+          { type: 'construct', hint: "밥을 먹습니다 (고항오 타베마스)", ans: "ごはんをたべます" },
+          { type: 'choice', q: "'물을 마십니다'", options: ["みずを のみます", "みずへ のみます"], ans: "みずを のみます" },
+          { type: 'construct', hint: "물을 마십니다 (미즈오 노미마스)", ans: "みずをのみます" },
+          { type: 'choice', q: "'신문을 읽습니다'", options: ["しんぶんを よみます", "しんぶんを みます"], ans: "しんぶんを よみます" },
+          { type: 'construct', hint: "신문을 읽습니다 (심분오 요미마스)", ans: "しんぶんをよみます" },
+          { type: 'choice', q: "'무엇을 합니까?'", options: ["なにを しますか", "どこを しますか"], ans: "なにを しますか" },
+          { type: 'construct', hint: "무엇을 합니까? (나니오 시마스카)", ans: "なにをしますか" }
+        ]
+      },
+      {
+        title: "제7과: 수단과 도구 (〜で)",
+        desc: "풀(8문제) 중 5문제가 랜덤으로 출제됩니다.",
+        intro: { type: 'input', jp: "スプーンで たべます", ko: "스푼으로 먹습니다.", exp: "수단이나 도구를 나타낼 때는 조사 「で(~으로)」를 사용합니다." },
+        pool: [
+          { type: 'choice', q: "'스푼으로 먹습니다'", options: ["スプーンに たべます", "スプーンで たべます"], ans: "スプーンで たべます" },
+          { type: 'construct', hint: "스푼으로 먹습니다 (스푸-ン데 타베마스)", ans: "スプーンでたべます" },
+          { type: 'choice', q: "'가위로 자릅니다'", options: ["はさみで きります", "はさみを きります"], ans: "はさみで きります" },
+          { type: 'construct', hint: "가위로 자릅니다 (하사미데 키리마스)", ans: "はさみできります" },
+          { type: 'choice', q: "'일본어로 리포트를 씁니다'", options: ["にほんごで レポートを かきます", "にほんごに レポートを かきます"], ans: "にほんごで レポートを かきます" },
+          { type: 'construct', hint: "일본어로 리포트를 씁니다 (니혼고데 레포-토오 카키마스)", ans: "にほんごでレポートをかきます" },
+          { type: 'choice', q: "'이것은 일본어로 무엇입니까?'", options: ["これは にほんごで なんですか", "これは にほんごが なんですか"], ans: "これは にほんごで なんですか" },
+          { type: 'construct', hint: "이것은 일본어로 무엇입니까? (코레와 니혼고데 난데스카)", ans: "これはにほんごでなんですか" }
+        ]
+      },
+      {
+        title: "제8과: 형용사 현재형 (い/な형용사)",
+        desc: "풀(8문제) 중 5문제가 랜덤으로 출제됩니다.",
+        intro: { type: 'input', jp: "さくらは きれいです", ko: "벚꽃은 예쁩니다.", exp: "명사를 꾸미거나 상태를 설명할 때 형용사를 사용합니다." },
+        pool: [
+          { type: 'choice', q: "'벚꽃은 예쁩니다'", options: ["さくらは きれいです", "さくらは きれいだです"], ans: "さくらは きれいです" },
+          { type: 'construct', hint: "벚꽃은 예쁩니다 (사쿠라와 키레이데스)", ans: "さくらはきれいです" },
+          { type: 'choice', q: "'후지산은 높습니다'", options: ["ふじさんは たかいです", "ふじさんは たか입니다"], ans: "ふじさんは たかいです" },
+          { type: 'construct', hint: "후지산은 높습니다 (후지산와 타카이데스)", ans: "ふじさんはたかいです" },
+          { type: 'choice', q: "'일본 음식은 맛있습니다'", options: ["にほんの たべものは おいしいです", "にほんの たべものは きれいです"], ans: "にほんの たべものは おいしいです" },
+          { type: 'construct', hint: "일본 음식은 맛있습니다 (니혼노 타베모노와 오이시-데스)", ans: "にほんのたべものはおいしいです" },
+          { type: 'choice', q: "'도쿄는 붐빕니까?'", options: ["とうきょうは にぎやかですか", "とうきょうは しずかですか"], ans: "とうきょうは にぎやかですか" },
+          { type: 'construct', hint: "도쿄는 붐빕니까? (토-쿄-와 니기야카데스카)", ans: "とうきょうはにぎやかですか" }
+        ]
+      },
+      {
+        title: "제9과: 기호와 능력 (〜が 好きです)",
+        desc: "풀(8문제) 중 5문제가 랜덤으로 출제됩니다.",
+        intro: { type: 'input', jp: "わたしは にほんごが わかります", ko: "저는 일본어를 압니다.", exp: "좋아하다, 싫어하다, 알다 등의 대상은 「を」가 아닌 「が」를 씁니다." },
+        pool: [
+          { type: 'choice', q: "'저는 일본어를 압니다'", options: ["わたしは にほんごを わかります", "わたしは にほんごが わかります"], ans: "わたしは にほんごが わかります" },
+          { type: 'construct', hint: "저는 일본어를 압니다 (와타시와 니혼고가 와카리마스)", ans: "わたしはにほんごがわかります" },
+          { type: 'choice', q: "'저는 스포츠를 좋아합니다'", options: ["わたしは スポーツが すきです", "わたしは スポーツを すきです"], ans: "わたしは スポーツが すきです" },
+          { type: 'construct', hint: "저는 스포츠를 좋아합니다 (와타시와 스포-츠가 스키데스)", ans: "わたしはスポーツがすきです" },
+          { type: 'choice', q: "'고기를 싫어합니다'", options: ["にくが きらいです", "にくを きらいです"], ans: "にくが きらいです" },
+          { type: 'construct', hint: "고기를 싫어합니다 (니쿠가 키라이데스)", ans: "にくがきらいです" },
+          { type: 'choice', q: "'어떤 스포츠를 좋아합니까?'", options: ["どんな スポーツが すきですか", "なんの スポーツが すきですか"], ans: "どんな スポーツが すきですか" },
+          { type: 'construct', hint: "어떤 스포츠를 좋아합니까? (돈나 스포-츠가 스키데스카)", ans: "どんなスポーツがすきですか" }
+        ]
+      },
+      {
+        title: "제10과: 존재 동사 (〜が あります/います)",
+        desc: "풀(8문제) 중 5문제가 랜덤으로 출제됩니다.",
+        intro: { type: 'input', jp: "へやに つくえが あります", ko: "방에 책상이 있습니다.", exp: "사물/식물이 있을 때는 「あります」, 사람/동물이 있을 때는 「います」를 씁니다." },
+        pool: [
+          { type: 'choice', q: "'방에 책상이 있습니다'", options: ["へやに つくえが います", "へやに つくえが あります"], ans: "へやに つくえが あります" },
+          { type: 'construct', hint: "방에 책상이 있습니다 (헤야니 츠쿠에가 아리마스)", ans: "へやにつくえがあります" },
+          { type: 'choice', q: "'로비에 야마다 씨가 있습니다'", options: ["ロビーに やまださんが います", "ロビーに やまださんが あります"], ans: "ロビーに やまださんが います" },
+          { type: 'construct', hint: "로비에 야마다 씨가 있습니다 (로비-니 야마다상가 이마스)", ans: "ロビーにやまださんがいます" },
+          { type: 'choice', q: "'화장실은 어디에 있습니까?'", options: ["トイレは どこに ありますか", "トイレは どこに いますか"], ans: "トイレは どこに ありますか" },
+          { type: 'construct', hint: "화장실은 어디에 있습니까? (토이레와 도코니 아리마스카)", ans: "トイレはどこにありますか" },
+          { type: 'choice', q: "'책상 위에 사진이 있습니다'", options: ["つくえの うえに しゃしんが あります", "つくえの なかに しゃしんが あります"], ans: "つくえの うえに しゃしんが あります" },
+          { type: 'construct', hint: "책상 위에 사진이 있습니다 (츠쿠에노 우에니 샤신가 아리마스)", ans: "つくえのうえにしゃしんがあります" }
         ]
       }
     ];
@@ -217,11 +296,8 @@
       renderDashboard();
     };
 
-    // ★ 변경: XP를 기반으로 레벨 계산 로직 추가
     function updateHeader() {
-      // 100 XP마다 1레벨업 (0~99: Lv.1, 100~199: Lv.2 ...)
       let level = Math.floor(xp / 100) + 1;
-      
       document.getElementById('level').innerText = level;
       document.getElementById('xp').innerText = xp;
       document.getElementById('coin').innerText = coin;
@@ -323,7 +399,9 @@
         btnArea.innerHTML = '';
         step.options.forEach(opt => {
           const btn = document.createElement('button');
-          btn.className = 'btn'; btn.innerText = opt;
+          btn.className = 'btn notranslate'; 
+          btn.setAttribute('translate', 'no');
+          btn.innerText = opt;
           btn.onclick = () => checkChoice(opt, step); 
           btnArea.appendChild(btn);
         });
@@ -356,7 +434,9 @@
         charGrid.innerHTML = '';
         buttonChars.forEach(char => {
           const btn = document.createElement('button');
-          btn.className = 'char-btn'; btn.innerText = char;
+          btn.className = 'char-btn notranslate'; 
+          btn.setAttribute('translate', 'no');
+          btn.innerText = char;
           btn.onclick = () => {
             currentInputText += char;
             document.getElementById('answer-display').innerText = currentInputText;
@@ -400,20 +480,42 @@
       }
     }
 
-    function populateVoiceList() { if (typeof speechSynthesis === 'undefined') return; voices = speechSynthesis.getVoices(); }
-    if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) { speechSynthesis.onvoiceschanged = populateVoiceList; }
+    function populateVoiceList() { 
+      if (typeof speechSynthesis === 'undefined') return; 
+      voices = speechSynthesis.getVoices(); 
+    }
+    
+    if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) { 
+      speechSynthesis.onvoiceschanged = populateVoiceList; 
+    }
     
     function playAudio(text) {
       if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        
         const cleanText = text.replace(/\s+/g, '') + '。';
         const utterance = new SpeechSynthesisUtterance(cleanText);
-        populateVoiceList(); 
-        let japaneseVoices = voices.filter(voice => voice.lang.includes('ja-JP') || voice.lang === 'ja_JP');
-        let nativeVoice = japaneseVoices.find(voice => voice.name === 'Google 日本語') || japaneseVoices.find(voice => voice.name.includes('Nanami')) || japaneseVoices.find(voice => voice.name.includes('Keita')) || japaneseVoices.find(voice => voice.name.includes('Ayumi')) || japaneseVoices.find(voice => voice.name.includes('Haruka')) || japaneseVoices.find(voice => voice.name.includes('Ichiro')) || japaneseVoices[0];
-        if (nativeVoice) utterance.voice = nativeVoice; else utterance.lang = 'ja-JP';
+        
+        utterance.lang = 'ja-JP'; 
         utterance.rate = 1.0; 
+        
+        populateVoiceList(); 
+        
+        let japaneseVoices = voices.filter(voice => voice.lang.includes('ja'));
+        if (japaneseVoices.length > 0) {
+          let nativeVoice = japaneseVoices.find(voice => 
+            voice.name.includes('Google') || 
+            voice.name.includes('Kyoko') || 
+            voice.name.includes('O-Ren') || 
+            voice.name.includes('Hattori')
+          ) || japaneseVoices[0];
+          utterance.voice = nativeVoice; 
+        }
+        
         window.speechSynthesis.speak(utterance);
-      } else { alert('이 브라우저는 음성 재생을 지원하지 않습니다.'); }
+      } else { 
+        alert('이 브라우저는 음성 재생을 지원하지 않습니다.'); 
+      }
     }
   </script>
 </body>
